@@ -30,26 +30,37 @@ function whitelist()
                 . "AND token = '%s'", $token);
 
             if (!($result = $con->query($query)))
-                die($con->error);
+                die("Es gab einen Fehler bei der Verbindung zur Datenbank.");
 
 
             if ($row = $result->fetch_row()) {
                 $uuid = username_to_uuid($name);
-                if ($uuid == "")
+                if ($uuid == "") {
                     echo "Fehler: Der Minecraft Name wurde nicht gefunden.";
 
-                else {
+                } else {
                     $uuid = substr_replace($uuid, "-", 8, 0);
-                    $uuid = substr_replace($uuid, "-", 11, 0);
+                    $uuid = substr_replace($uuid, "-", 13, 0);
                     $uuid = substr_replace($uuid, "-", 18, 0);
                     $uuid = substr_replace($uuid, "-", 23, 0);
 
-                    $query = sprintf("INSERT INTO bansystem_whitelist (token_id, player_id) VALUE ('%s', '%s')", $row[0], $uuid);
+                    $query = "SELECT 1 FROM bansystem_whitelist WHERE player_id = '" . $uuid . "'";
+                    if (!($result = $con->query($query)))
+                        die("Es gab einen Fehler bei der Verbindung zur Datenbank.");
 
-                    if (!($con->query($query)))
-                        die($con->error);
-                    else {
-                        echo sprintf("Erfolg: %s (UUID: %s) wurde gewhitelisted.", $name, $uuid);
+                    if (!$result->fetch_row()) {
+                        $query = sprintf("INSERT INTO bansystem_whitelist (token_id, player_id) VALUE ('%s', '%s')", $row[0], $uuid);
+
+                        if (!($con->query($query)))
+                            die("Es gab einen Fehler bei der Verbindung zur Datenbank.");
+                        else {
+                            echo sprintf("Erfolg: %s wurde gewhitelisted.", $name);
+
+                            $query = "INSERT INTO bansystem_player (uuid, name) VALUE ('%s', '%s')" . sprintf($uuid, $name);
+                            $con->query($query);
+                        }
+                    } else {
+                        echo "Du bist bereits gewhitelisted.";
                     }
                 }
             } else
